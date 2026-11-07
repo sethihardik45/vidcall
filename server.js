@@ -9,6 +9,23 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "public")));
 
+// ICE servers for WebRTC. Set TURN_URL, TURN_USERNAME, TURN_CREDENTIAL on the host
+// (e.g. Railway variables) to enable a TURN relay; TURN_URL may be comma-separated.
+app.get("/ice-config", (req, res) => {
+  const iceServers = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+  ];
+  if (process.env.TURN_URL) {
+    iceServers.push({
+      urls: process.env.TURN_URL.split(",").map((s) => s.trim()),
+      username: process.env.TURN_USERNAME,
+      credential: process.env.TURN_CREDENTIAL,
+    });
+  }
+  res.json({ iceServers });
+});
+
 // Matchmaking state
 let waiting = null; // socket id of the user waiting for a partner
 const partners = new Map(); // socket id -> partner socket id

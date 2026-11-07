@@ -6,14 +6,9 @@ const localVideo = $("localVideo"), remoteVideo = $("remoteVideo");
 const statusEl = $("status"), messages = $("messages");
 const chatInput = $("chatInput"), sendBtn = $("sendBtn");
 
-const RTC_CONFIG = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    // For production, add a TURN server here so users behind strict NATs can connect:
-    // { urls: "turn:your.turn.server:3478", username: "user", credential: "pass" },
-  ],
-};
+// Fetched from the server so TURN credentials live in env vars, not in the repo.
+let RTC_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+fetch("/ice-config").then((r) => r.json()).then((c) => (RTC_CONFIG = c)).catch(() => {});
 
 let localStream = null;
 let pc = null;
