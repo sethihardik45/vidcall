@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>vidCall – Talk to a Stranger</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Landing screen -->
+  <section id="landing" class="screen">
+    <h1>vid<span>Call</span></h1>
+    <p class="tagline">Talk to a random stranger, face to face.</p>
+    <button id="startBtn" class="primary">Start chatting</button>
+    <p class="small"><span id="onlineCount">0</span> online now</p>
+    <p class="fine">Be kind. You must be 18+ to use this site. Your camera and microphone are needed.</p>
+  </section>
+
+  <!-- Chat screen -->
+  <section id="chat" class="screen hidden">
+    <div class="videos">
+      <div class="remote-wrap">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div id="status" class="status">Connecting…</div>
+      </div>
+      <video id="localVideo" autoplay playsinline muted></video>
+    </div>
+
+    <div class="side">
+      <div id="messages" class="messages"></div>
+      <form id="chatForm">
+        <input id="chatInput" autocomplete="off" placeholder="Type a message…" disabled />
+        <button type="submit" disabled id="sendBtn">Send</button>
+      </form>
+    </div>
+
+    <div class="controls">
+      <button id="muteBtn">Mute</button>
+      <button id="camBtn">Camera off</button>
+      <button id="nextBtn" class="primary">Next ▶</button>
+      <button id="stopBtn" class="danger">Stop</button>
+    </div>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
