@@ -2,12 +2,27 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "public")));
+
+// Fallback videos, played when no stranger is available. Drop files into ./videos
+const VIDEO_DIR = path.join(__dirname, "videos");
+app.use("/videos", express.static(VIDEO_DIR)); // supports range requests for seeking
+app.get("/api/videos", (req, res) => {
+  fs.readdir(VIDEO_DIR, (err, files) => {
+    if (err) return res.json([]);
+    res.json(
+      files
+        .filter((f) => /\.(mp4|webm|mov|m4v)$/i.test(f))
+        .map((f) => "/videos/" + encodeURIComponent(f))
+    );
+  });
+});
 
 // ICE servers for WebRTC. Set TURN_URL, TURN_USERNAME, TURN_CREDENTIAL on the host
 // (e.g. Railway variables) to enable a TURN relay; TURN_URL may be comma-separated.

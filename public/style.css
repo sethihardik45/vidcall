@@ -49,6 +49,12 @@ button.danger:hover { background: #cd3b40; }
   font-size: 1.3rem; color: #cfd3e0; background: rgba(0,0,0,.45); text-align: center; padding: 20px;
 }
 .status.hidden { display: none; }
+.status.opaque { background: #0f1117; }
+.badge {
+  position: absolute; top: 12px; left: 12px; z-index: 2; max-width: 70%;
+  background: rgba(0,0,0,.6); color: #dfe3f0; font-size: .85rem;
+  padding: 6px 12px; border-radius: 8px;
+}
 
 .side { display: flex; flex-direction: column; min-height: 0; background: #171a24; border-radius: 14px; padding: 12px; }
 .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }

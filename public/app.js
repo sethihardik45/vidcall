@@ -16,9 +16,68 @@ let pendingIce = [];
 
 socket.on("online", (n) => ($("onlineCount").textContent = n));
 
-function setStatus(text) {
+function setStatus(text, opaque = false) {
+  statusEl.classList.toggle("opaque", opaque);
   if (text) { statusEl.textContent = text; statusEl.classList.remove("hidden"); }
   else statusEl.classList.add("hidden");
+}
+
+// --- Fallback videos (played when no stranger is available) ---
+let videoList = [];
+let lastVideo = null;
+let fallbackOn = false;
+const fallbackLabel = $("fallbackLabel");
+
+fetch("/api/videos").then((r) => r.json()).then((l) => (videoList = l)).catch(() => {});
+
+function playRandomVideo() {
+  if (!fallbackOn || !videoList.length) return;
+  const choices = videoList.length > 1 ? videoList.filter((v) => v !== lastVideo) : videoList;
+  lastVideo = choices[Math.floor(Math.random() * choices.length)];
+  remoteVideo.srcObject = null;
+  remoteVideo.src = lastVideo;
+  remoteVideo.play().catch(() => {});
+}
+remoteVideo.addEventListener("ended", playRandomVideo);
+remoteVideo.addEventListener("error", () => {
+  if (fallbackOn) setTimeout(playRandomVideo, 500); // skip an unplayable file
+});
+
+function startFallback() {
+  if (!videoList.length) return; // nothing to play; the "Looking for someone…" status stays
+  fallbackOn = true;
+  setStatus("");
+  fallbackLabel.classList.remove("hidden");
+  playRandomVideo();
+}
+
+function stopFallback() {
+  fallbackOn = false;
+  fallbackLabel.classList.add("hidden");
+  remoteVideo.pause();
+  remoteVideo.removeAttribute("src");
+  remoteVideo.load();
+}
+
+// --- Compulsory 2-3 second transition between consecutive videos ---
+let transitioning = false;
+let transitionTimer = null;
+
+function next() {
+  if (transitioning) return;
+  transitioning = true;
+  $("nextBtn").disabled = true;
+  socket.emit("leave"); // don't be matched until the transition is over
+  stopFallback();
+  closePeer();
+  messages.innerHTML = "";
+  setStatus("Finding your next stranger…", true);
+  const delay = 2000 + Math.random() * 1000;
+  transitionTimer = setTimeout(() => {
+    transitioning = false;
+    $("nextBtn").disabled = false;
+    findPartner();
+  }, delay);
 }
 
 function addMsg(text, cls) {
@@ -81,6 +140,10 @@ function findPartner() {
 
 function stop() {
   socket.emit("leave");
+  clearTimeout(transitionTimer);
+  transitioning = false;
+  $("nextBtn").disabled = false;
+  stopFallback();
   closePeer();
   if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
   localVideo.srcObject = null;
@@ -89,9 +152,15 @@ function stop() {
 }
 
 // --- Socket events ---
-socket.on("waiting", () => setStatus("Looking for someone to talk to…"));
+socket.on("waiting", () => {
+  if (transitioning) return;
+  setStatus("Looking for someone to talk to…");
+  startFallback();
+});
 
 socket.on("matched", async ({ initiator }) => {
+  if (transitioning) return;
+  stopFallback();
   setStatus("Stranger found! Connecting…");
   addMsg("You're now chatting with a stranger. Say hi!", "sys");
   createPeer();
@@ -133,17 +202,13 @@ async function flushIce() {
   pendingIce = [];
 }
 
-socket.on("partner-left", () => {
-  closePeer();
-  addMsg("Stranger disconnected.", "sys");
-  setStatus("Stranger left. Click Next to meet someone new.");
-});
+socket.on("partner-left", () => next()); // stranger left: transition, then find someone new
 
 socket.on("chat", (text) => addMsg(text, "them"));
 
 // --- UI wiring ---
 $("startBtn").onclick = start;
-$("nextBtn").onclick = findPartner;
+$("nextBtn").onclick = next;
 $("stopBtn").onclick = stop;
 
 $("muteBtn").onclick = (e) => {
